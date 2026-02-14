@@ -26,6 +26,7 @@ uint32_t currentTime  = 0;
 CyBool_t recording  = CyFalse;
 CyBool_t endOfFrame = CyFalse;
 CyBool_t bnoEnabled = CyFalse;
+CyBool_t isFirstBufferOfFrame = CyTrue;
 
 FwInfoKind fwInfoQuery = FW_INFO_KIND_NONE;
 

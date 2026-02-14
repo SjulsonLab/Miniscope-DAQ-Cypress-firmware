@@ -63,6 +63,7 @@ extern void i2c_packet_queue_wrnext_if_complete (I2CPacketQueue *pq, I2CPacketPa
 extern CyBool_t recording;
 extern CyBool_t endOfFrame;
 extern CyBool_t bnoEnabled;
+extern CyBool_t isFirstBufferOfFrame;
 
 extern FwInfoKind fwInfoQuery;
 

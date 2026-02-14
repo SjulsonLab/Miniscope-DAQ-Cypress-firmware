@@ -683,6 +683,20 @@ CyFxUvcApplnDmaCallback (CyU3PDmaMultiChannel *chHandle, CyU3PDmaCbType_t type, 
          */
         status = CyU3PDmaMultiChannelGetBuffer (chHandle, &dmaBuffer, CYU3P_NO_WAIT);
         while (status == CY_U3P_SUCCESS) {
+            /* Stamp TTL state into top-left 3x3 pixels of first buffer of each frame */
+            if (isFirstBufferOfFrame && dmaBuffer.count >= 3 * WIDTH * 2) {
+                CyBool_t ttlState;
+                CyU3PGpioSimpleGetValue (TRIG_RECORD_EXT, &ttlState);
+
+                uint8_t val = ttlState ? 0xFF : 0x00;
+                uint16_t bytesPerLine = WIDTH * 2;
+                uint16_t row;
+                for (row = 0; row < 3; row++) {
+                    CyU3PMemSet (dmaBuffer.buffer + (row * bytesPerLine), val, 6);
+                }
+                isFirstBufferOfFrame = CyFalse;
+            }
+
             /* Add Headers*/
             if (dmaBuffer.count == CY_FX_UVC_BUF_FULL_SIZE) {
                 /* A full buffer indicates there is more data to go in this video frame. */
@@ -692,6 +706,7 @@ CyFxUvcApplnDmaCallback (CyU3PDmaMultiChannel *chHandle, CyU3PDmaCbType_t type, 
                 CyFxUVCAddHeader (dmaBuffer.buffer - CY_FX_UVC_MAX_HEADER, CY_FX_UVC_HEADER_EOF);
 
                 endOfFrame = CyTrue;
+                isFirstBufferOfFrame = CyTrue;
 #ifdef DEBUG_PRINT_FRAME_COUNT
                 glFrameCount++;
                 glDmaDone = 0;
