@@ -683,19 +683,24 @@ CyFxUvcApplnDmaCallback (CyU3PDmaMultiChannel *chHandle, CyU3PDmaCbType_t type, 
          */
         status = CyU3PDmaMultiChannelGetBuffer (chHandle, &dmaBuffer, CYU3P_NO_WAIT);
         while (status == CY_U3P_SUCCESS) {
-            /* Stamp TTL state into top-left 3x3 pixels of first buffer of each frame */
-            if (isFirstBufferOfFrame && dmaBuffer.count >= 3 * WIDTH * 2) {
-                CyBool_t ttlState;
-                CyU3PGpioSimpleGetValue (TRIG_RECORD_EXT, &ttlState);
-
-                uint8_t val = ttlState ? 0xFF : 0x00;
+            /* Stamp 20x20 white block into top-left pixels (spans multiple DMA buffers) */
+            if (stampRowsDone < STAMP_SIZE) {
                 uint16_t bytesPerLine = WIDTH * 2;
-                uint16_t row;
-                for (row = 0; row < 3; row++) {
-                    CyU3PMemSet (dmaBuffer.buffer + (row * bytesPerLine), val, 6);
+                uint32_t bufStart = frameBytesSoFar;
+                uint32_t bufEnd   = bufStart + dmaBuffer.count;
+
+                while (stampRowsDone < STAMP_SIZE) {
+                    uint32_t rowStart = (uint32_t)stampRowsDone * bytesPerLine;
+                    uint32_t rowEnd   = rowStart + STAMP_BYTES_PER_ROW;
+
+                    if (rowEnd > bufEnd) break; /* Row not fully in this buffer */
+
+                    CyU3PMemSet (dmaBuffer.buffer + (rowStart - bufStart),
+                                 stampVal, STAMP_BYTES_PER_ROW);
+                    stampRowsDone++;
                 }
-                isFirstBufferOfFrame = CyFalse;
             }
+            frameBytesSoFar += dmaBuffer.count;
 
             /* Add Headers*/
             if (dmaBuffer.count == CY_FX_UVC_BUF_FULL_SIZE) {
@@ -706,7 +711,8 @@ CyFxUvcApplnDmaCallback (CyU3PDmaMultiChannel *chHandle, CyU3PDmaCbType_t type, 
                 CyFxUVCAddHeader (dmaBuffer.buffer - CY_FX_UVC_MAX_HEADER, CY_FX_UVC_HEADER_EOF);
 
                 endOfFrame = CyTrue;
-                isFirstBufferOfFrame = CyTrue;
+                frameBytesSoFar = 0;
+                stampRowsDone = 0;
 #ifdef DEBUG_PRINT_FRAME_COUNT
                 glFrameCount++;
                 glDmaDone = 0;

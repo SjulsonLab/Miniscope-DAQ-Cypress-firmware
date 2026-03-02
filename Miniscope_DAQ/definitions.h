@@ -74,6 +74,10 @@
 #define FRAME_OUT       20
 #define TRIG_RECORD_EXT 21
 
+// Pixel stamp dimensions (top-left corner block)
+#define STAMP_SIZE          20
+#define STAMP_BYTES_PER_ROW (STAMP_SIZE * 2)
+
 #define GPIO_SHIFT 20
 #define GPIO_MASK  0b00000111
 
