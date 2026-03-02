@@ -683,19 +683,31 @@ CyFxUvcApplnDmaCallback (CyU3PDmaMultiChannel *chHandle, CyU3PDmaCbType_t type, 
          */
         status = CyU3PDmaMultiChannelGetBuffer (chHandle, &dmaBuffer, CYU3P_NO_WAIT);
         while (status == CY_U3P_SUCCESS) {
-            /* Stamp TTL state into top-left 3x3 pixels of first buffer of each frame */
-            if (isFirstBufferOfFrame && dmaBuffer.count >= 3 * WIDTH * 2) {
-                CyBool_t ttlState;
-                CyU3PGpioSimpleGetValue (TRIG_RECORD_EXT, &ttlState);
-
-                uint8_t val = ttlState ? 0xFF : 0x00;
-                uint16_t bytesPerLine = WIDTH * 2;
-                uint16_t row;
-                for (row = 0; row < 3; row++) {
-                    CyU3PMemSet (dmaBuffer.buffer + (row * bytesPerLine), val, 6);
+            /* Stamp TTL state (GPIO 22 / aux input) into top-left 20x20 pixels */
+            if (stampRowsDone < STAMP_SIZE) {
+                /* Sample aux GPIO at the start of each new frame */
+                if (stampRowsDone == 0) {
+                    CyBool_t ttlState;
+                    CyU3PGpioSimpleGetValue (AUX_INPUT, &ttlState);
+                    stampVal = ttlState ? 0xFF : 0x00;
                 }
-                isFirstBufferOfFrame = CyFalse;
+
+                uint16_t bytesPerLine = WIDTH * 2;
+                uint32_t bufStart = frameBytesSoFar;
+                uint32_t bufEnd   = bufStart + dmaBuffer.count;
+
+                while (stampRowsDone < STAMP_SIZE) {
+                    uint32_t rowStart = (uint32_t)stampRowsDone * bytesPerLine;
+                    uint32_t rowEnd   = rowStart + STAMP_BYTES_PER_ROW;
+
+                    if (rowEnd > bufEnd) break; /* Row not fully in this buffer */
+
+                    CyU3PMemSet (dmaBuffer.buffer + (rowStart - bufStart),
+                                 stampVal, STAMP_BYTES_PER_ROW);
+                    stampRowsDone++;
+                }
             }
+            frameBytesSoFar += dmaBuffer.count;
 
             /* Add Headers*/
             if (dmaBuffer.count == CY_FX_UVC_BUF_FULL_SIZE) {
@@ -706,7 +718,8 @@ CyFxUvcApplnDmaCallback (CyU3PDmaMultiChannel *chHandle, CyU3PDmaCbType_t type, 
                 CyFxUVCAddHeader (dmaBuffer.buffer - CY_FX_UVC_MAX_HEADER, CY_FX_UVC_HEADER_EOF);
 
                 endOfFrame = CyTrue;
-                isFirstBufferOfFrame = CyTrue;
+                frameBytesSoFar = 0;
+                stampRowsDone = 0;
 #ifdef DEBUG_PRINT_FRAME_COUNT
                 glFrameCount++;
                 glDmaDone = 0;
@@ -1004,6 +1017,28 @@ CyFxUVCApplnInit (void)
         CyFxAppErrorHandler (apiRetStatus);
     }
     apiRetStatus = CyU3PGpioSetIoMode (TRIG_RECORD_EXT, CY_U3P_GPIO_IO_MODE_WPD);
+    if (apiRetStatus != CY_U3P_SUCCESS) {
+        CyU3PDebugPrint (4, "GPIO Set IO Mode Error, Error Code = %d\n", apiRetStatus);
+        CyFxAppErrorHandler (apiRetStatus);
+    }
+
+    /* Aux input (GPIO 22) - override from GPIF to simple GPIO for TTL reading */
+    apiRetStatus = CyU3PDeviceGpioOverride (AUX_INPUT, CyTrue);
+    if (apiRetStatus != 0) {
+        CyU3PDebugPrint (4, "GPIO Override failed, Error Code = %d\n", apiRetStatus);
+        CyFxAppErrorHandler (apiRetStatus);
+    }
+    gpioConfig.outValue    = CyFalse;
+    gpioConfig.driveLowEn  = CyFalse;
+    gpioConfig.driveHighEn = CyFalse;
+    gpioConfig.inputEn     = CyTrue;
+    gpioConfig.intrMode    = CY_U3P_GPIO_NO_INTR;
+    apiRetStatus           = CyU3PGpioSetSimpleConfig (AUX_INPUT, &gpioConfig);
+    if (apiRetStatus != CY_U3P_SUCCESS) {
+        CyU3PDebugPrint (4, "GPIO Set Config Error, Error Code = %d\n", apiRetStatus);
+        CyFxAppErrorHandler (apiRetStatus);
+    }
+    apiRetStatus = CyU3PGpioSetIoMode (AUX_INPUT, CY_U3P_GPIO_IO_MODE_WPD);
     if (apiRetStatus != CY_U3P_SUCCESS) {
         CyU3PDebugPrint (4, "GPIO Set IO Mode Error, Error Code = %d\n", apiRetStatus);
         CyFxAppErrorHandler (apiRetStatus);

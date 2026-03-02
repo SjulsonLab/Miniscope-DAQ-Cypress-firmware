@@ -26,7 +26,9 @@ uint32_t currentTime  = 0;
 CyBool_t recording  = CyFalse;
 CyBool_t endOfFrame = CyFalse;
 CyBool_t bnoEnabled = CyFalse;
-CyBool_t isFirstBufferOfFrame = CyTrue;
+uint16_t stampRowsDone    = STAMP_SIZE; /* No stamping until first end-of-frame */
+uint8_t  stampVal         = 0x00;      /* Updated from GPIO 22 at each frame start */
+uint32_t frameBytesSoFar = 0;
 
 FwInfoKind fwInfoQuery = FW_INFO_KIND_NONE;
 
