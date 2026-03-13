@@ -53,21 +53,21 @@ class CropStampLayoutTests(unittest.TestCase):
         for define_name in required_defines:
             parse_define(definitions_text, define_name)
 
-    def test_stamp_lands_inside_assumed_crop(self) -> None:
+    def test_white_square_uses_a_quarter_frame_corner_stamp(self) -> None:
         definitions_text = read_text(DEFINITIONS_H)
 
-        crop_left = parse_int_define(definitions_text, "CROP_LEFT_EDGE_PX")
-        crop_top = parse_int_define(definitions_text, "CROP_TOP_EDGE_PX")
-        crop_width = parse_int_define(definitions_text, "CROP_WIDTH_PX")
-        crop_height = parse_int_define(definitions_text, "CROP_HEIGHT_PX")
         stamp_left = parse_int_define(definitions_text, "STAMP_LEFT_EDGE_PX")
         stamp_top = parse_int_define(definitions_text, "STAMP_TOP_EDGE_PX")
         stamp_size = parse_int_define(definitions_text, "STAMP_SIZE_PX")
+        frame_width = parse_int_define(definitions_text, "WIDTH")
+        frame_height = parse_int_define(definitions_text, "HEIGHT")
 
-        self.assertGreaterEqual(stamp_left, crop_left)
-        self.assertGreaterEqual(stamp_top, crop_top)
-        self.assertLessEqual(stamp_left + stamp_size, crop_left + crop_width)
-        self.assertLessEqual(stamp_top + stamp_size, crop_top + crop_height)
+        self.assertEqual(parse_define(definitions_text, "STAMP_MODE"), "STAMP_MODE_ALWAYS_WHITE")
+        self.assertEqual(stamp_left, 0)
+        self.assertEqual(stamp_top, 0)
+        self.assertEqual(stamp_size, 304)
+        self.assertLessEqual(stamp_left + stamp_size, frame_width)
+        self.assertLessEqual(stamp_top + stamp_size, frame_height)
 
     def test_frame_tracking_globals_exist(self) -> None:
         miniscope_h = read_text(MINISCOPE_H)
