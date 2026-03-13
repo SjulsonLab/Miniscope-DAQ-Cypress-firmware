@@ -7,6 +7,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFINITIONS_H = REPO_ROOT / "Miniscope_DAQ" / "definitions.h"
 MINISCOPE_H = REPO_ROOT / "Miniscope_DAQ" / "miniscope.h"
 MINISCOPE_C = REPO_ROOT / "Miniscope_DAQ" / "miniscope.c"
+UVC_C = REPO_ROOT / "Miniscope_DAQ" / "uvc.c"
 
 
 def read_text(path: Path) -> str:
@@ -76,6 +77,23 @@ class CropStampLayoutTests(unittest.TestCase):
         for symbol in ("stampRowsDone", "stampVal", "frameBytesSoFar"):
             self.assertIn(symbol, miniscope_h)
             self.assertIn(symbol, miniscope_c)
+
+    def test_gpio22_mode_is_enabled(self) -> None:
+        definitions_text = read_text(DEFINITIONS_H)
+        self.assertEqual(parse_define(definitions_text, "STAMP_MODE"), "STAMP_MODE_GPIO22")
+
+    def test_aux_gpio_is_sampled_and_initialized(self) -> None:
+        uvc_text = read_text(UVC_C)
+
+        required_snippets = [
+            "CyU3PGpioSimpleGetValue (AUX_INPUT, &ttlState);",
+            "CyU3PDeviceGpioOverride (AUX_INPUT, CyTrue);",
+            "CyU3PGpioSetSimpleConfig (AUX_INPUT, &gpioConfig);",
+            "CyU3PGpioSetIoMode (AUX_INPUT, CY_U3P_GPIO_IO_MODE_WPD);",
+        ]
+
+        for snippet in required_snippets:
+            self.assertIn(snippet, uvc_text)
 
 
 if __name__ == "__main__":
