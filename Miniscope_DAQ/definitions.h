@@ -73,6 +73,24 @@
 // DAQ GPIO
 #define FRAME_OUT       20
 #define TRIG_RECORD_EXT 21
+#define AUX_INPUT       22
+
+// Assumed host-side crop used for recording. Units are full-frame pixels.
+#define CROP_LEFT_EDGE_PX 157
+#define CROP_TOP_EDGE_PX  117
+#define CROP_WIDTH_PX     416
+#define CROP_HEIGHT_PX    334
+
+// Pixel stamp geometry in full-frame pixel coordinates.
+#define STAMP_SIZE_PX      20
+#define STAMP_BYTES_PER_ROW (STAMP_SIZE_PX * 2)
+#define STAMP_LEFT_EDGE_PX CROP_LEFT_EDGE_PX
+#define STAMP_TOP_EDGE_PX  CROP_TOP_EDGE_PX
+
+// Stamp source selection.
+#define STAMP_MODE_ALWAYS_WHITE 0
+#define STAMP_MODE_GPIO22       1
+#define STAMP_MODE              STAMP_MODE_ALWAYS_WHITE
 
 #define GPIO_SHIFT 20
 #define GPIO_MASK  0b00000111

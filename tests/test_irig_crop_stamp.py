@@ -20,6 +20,13 @@ def parse_define(text: str, name: str) -> str:
     return match.group(1).strip()
 
 
+def parse_int_define(text: str, name: str) -> int:
+    value = parse_define(text, name)
+    if re.fullmatch(r"\d+", value):
+        return int(value)
+    return parse_int_define(text, value)
+
+
 class CropStampLayoutTests(unittest.TestCase):
     def test_gitignore_ignores_ds_store(self) -> None:
         gitignore = read_text(REPO_ROOT / ".gitignore")
@@ -49,13 +56,13 @@ class CropStampLayoutTests(unittest.TestCase):
     def test_stamp_lands_inside_assumed_crop(self) -> None:
         definitions_text = read_text(DEFINITIONS_H)
 
-        crop_left = int(parse_define(definitions_text, "CROP_LEFT_EDGE_PX"))
-        crop_top = int(parse_define(definitions_text, "CROP_TOP_EDGE_PX"))
-        crop_width = int(parse_define(definitions_text, "CROP_WIDTH_PX"))
-        crop_height = int(parse_define(definitions_text, "CROP_HEIGHT_PX"))
-        stamp_left = int(parse_define(definitions_text, "STAMP_LEFT_EDGE_PX"))
-        stamp_top = int(parse_define(definitions_text, "STAMP_TOP_EDGE_PX"))
-        stamp_size = int(parse_define(definitions_text, "STAMP_SIZE_PX"))
+        crop_left = parse_int_define(definitions_text, "CROP_LEFT_EDGE_PX")
+        crop_top = parse_int_define(definitions_text, "CROP_TOP_EDGE_PX")
+        crop_width = parse_int_define(definitions_text, "CROP_WIDTH_PX")
+        crop_height = parse_int_define(definitions_text, "CROP_HEIGHT_PX")
+        stamp_left = parse_int_define(definitions_text, "STAMP_LEFT_EDGE_PX")
+        stamp_top = parse_int_define(definitions_text, "STAMP_TOP_EDGE_PX")
+        stamp_size = parse_int_define(definitions_text, "STAMP_SIZE_PX")
 
         self.assertGreaterEqual(stamp_left, crop_left)
         self.assertGreaterEqual(stamp_top, crop_top)

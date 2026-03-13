@@ -26,7 +26,9 @@ uint32_t currentTime  = 0;
 CyBool_t recording  = CyFalse;
 CyBool_t endOfFrame = CyFalse;
 CyBool_t bnoEnabled = CyFalse;
-CyBool_t isFirstBufferOfFrame = CyTrue;
+uint16_t stampRowsDone  = STAMP_SIZE_PX; /* Wait for the first frame boundary before stamping. */
+uint8_t  stampVal       = 0xFF;          /* Debug build: keep the stamp fully white. */
+uint32_t frameBytesSoFar = 0;
 
 FwInfoKind fwInfoQuery = FW_INFO_KIND_NONE;
 
