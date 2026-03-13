@@ -685,6 +685,20 @@ CyFxUvcApplnDmaCallback (CyU3PDmaMultiChannel *chHandle, CyU3PDmaCbType_t type, 
         while (status == CY_U3P_SUCCESS) {
             /* Stamp a 20x20 block into the top-left corner of the assumed cropped recording. */
             if (stampRowsDone < STAMP_SIZE_PX) {
+#if STAMP_MODE == STAMP_MODE_GPIO22
+                if (stampRowsDone == 0) {
+                    CyBool_t ttlState;
+                    CyU3PGpioSimpleGetValue (AUX_INPUT, &ttlState);
+                    stampVal = ttlState ? 0xFF : 0x00;
+                }
+#elif STAMP_MODE == STAMP_MODE_ALWAYS_WHITE
+                if (stampRowsDone == 0) {
+                    stampVal = 0xFF;
+                }
+#else
+#error Unsupported STAMP_MODE selection
+#endif
+
                 uint16_t bytesPerLine = WIDTH * 2;
                 uint32_t bufStart     = frameBytesSoFar;
                 uint32_t bufEnd       = bufStart + dmaBuffer.count;
@@ -1016,6 +1030,29 @@ CyFxUVCApplnInit (void)
         CyFxAppErrorHandler (apiRetStatus);
     }
     apiRetStatus = CyU3PGpioSetIoMode (TRIG_RECORD_EXT, CY_U3P_GPIO_IO_MODE_WPD);
+    if (apiRetStatus != CY_U3P_SUCCESS) {
+        CyU3PDebugPrint (4, "GPIO Set IO Mode Error, Error Code = %d\n", apiRetStatus);
+        CyFxAppErrorHandler (apiRetStatus);
+    }
+
+    /* Aux input is sampled once per frame to modulate the corner stamp. */
+    apiRetStatus = CyU3PDeviceGpioOverride (AUX_INPUT, CyTrue);
+    if (apiRetStatus != 0) {
+        CyU3PDebugPrint (4, "GPIO Override failed, Error Code = %d\n", apiRetStatus);
+        CyFxAppErrorHandler (apiRetStatus);
+    }
+
+    gpioConfig.outValue    = CyFalse;
+    gpioConfig.driveLowEn  = CyFalse;
+    gpioConfig.driveHighEn = CyFalse;
+    gpioConfig.inputEn     = CyTrue;
+    gpioConfig.intrMode    = CY_U3P_GPIO_NO_INTR;
+    apiRetStatus           = CyU3PGpioSetSimpleConfig (AUX_INPUT, &gpioConfig);
+    if (apiRetStatus != CY_U3P_SUCCESS) {
+        CyU3PDebugPrint (4, "GPIO Set Config Error, Error Code = %d\n", apiRetStatus);
+        CyFxAppErrorHandler (apiRetStatus);
+    }
+    apiRetStatus = CyU3PGpioSetIoMode (AUX_INPUT, CY_U3P_GPIO_IO_MODE_WPD);
     if (apiRetStatus != CY_U3P_SUCCESS) {
         CyU3PDebugPrint (4, "GPIO Set IO Mode Error, Error Code = %d\n", apiRetStatus);
         CyFxAppErrorHandler (apiRetStatus);

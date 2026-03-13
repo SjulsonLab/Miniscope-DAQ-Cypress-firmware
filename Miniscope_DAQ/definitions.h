@@ -90,7 +90,7 @@
 // Stamp source selection.
 #define STAMP_MODE_ALWAYS_WHITE 0
 #define STAMP_MODE_GPIO22       1
-#define STAMP_MODE              STAMP_MODE_ALWAYS_WHITE
+#define STAMP_MODE              STAMP_MODE_GPIO22
 
 #define GPIO_SHIFT 20
 #define GPIO_MASK  0b00000111

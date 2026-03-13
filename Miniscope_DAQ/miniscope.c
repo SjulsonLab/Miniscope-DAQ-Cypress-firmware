@@ -27,7 +27,7 @@ CyBool_t recording  = CyFalse;
 CyBool_t endOfFrame = CyFalse;
 CyBool_t bnoEnabled = CyFalse;
 uint16_t stampRowsDone  = STAMP_SIZE_PX; /* Wait for the first frame boundary before stamping. */
-uint8_t  stampVal       = 0xFF;          /* Debug build: keep the stamp fully white. */
+uint8_t  stampVal       = 0x00;          /* Updated from GPIO 22 at the start of each frame. */
 uint32_t frameBytesSoFar = 0;
 
 FwInfoKind fwInfoQuery = FW_INFO_KIND_NONE;
