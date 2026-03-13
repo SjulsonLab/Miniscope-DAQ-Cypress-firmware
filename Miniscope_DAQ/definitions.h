@@ -82,10 +82,10 @@
 #define CROP_HEIGHT_PX    334
 
 // Pixel stamp geometry in full-frame pixel coordinates.
-#define STAMP_SIZE_PX      20
+#define STAMP_SIZE_PX      304
 #define STAMP_BYTES_PER_ROW (STAMP_SIZE_PX * 2)
-#define STAMP_LEFT_EDGE_PX CROP_LEFT_EDGE_PX
-#define STAMP_TOP_EDGE_PX  CROP_TOP_EDGE_PX
+#define STAMP_LEFT_EDGE_PX 0
+#define STAMP_TOP_EDGE_PX  0
 
 // Stamp source selection.
 #define STAMP_MODE_ALWAYS_WHITE 0

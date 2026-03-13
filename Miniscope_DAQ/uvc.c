@@ -683,7 +683,7 @@ CyFxUvcApplnDmaCallback (CyU3PDmaMultiChannel *chHandle, CyU3PDmaCbType_t type, 
          */
         status = CyU3PDmaMultiChannelGetBuffer (chHandle, &dmaBuffer, CYU3P_NO_WAIT);
         while (status == CY_U3P_SUCCESS) {
-            /* Stamp a 20x20 block into the top-left corner of the assumed cropped recording. */
+            /* Stamp a large white block into the top-left quarter of the uncropped frame. */
             if (stampRowsDone < STAMP_SIZE_PX) {
                 uint16_t bytesPerLine = WIDTH * 2;
                 uint32_t bufStart     = frameBytesSoFar;
