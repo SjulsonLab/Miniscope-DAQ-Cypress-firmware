@@ -651,6 +651,20 @@ CyFxUVCApplnUSBSetupCB (uint32_t setupdat0, /* SETUP Data 0 */
     return uvcHandleReq;
 }
 
+/* Write one stamp row in YUYV format.
+ * Luma bytes (Y, at even offsets) are set to the given value; chroma bytes
+ * (U/V, at odd offsets) are set to 0x80 (neutral), giving pure black or white
+ * with no color cast. */
+static void
+stamp_row_yuyv (uint8_t *dst, uint8_t luma)
+{
+    uint16_t i;
+    for (i = 0; i < STAMP_BYTES_PER_ROW; i += 2) {
+        dst[i]     = luma;  /* Y (luma)           */
+        dst[i + 1] = 0x80;  /* U or V (neutral chroma) */
+    }
+}
+
 /* DMA callback providing notification when data buffers are received from the sensor and when they have
  * been drained by the USB host.
  *
@@ -683,8 +697,17 @@ CyFxUvcApplnDmaCallback (CyU3PDmaMultiChannel *chHandle, CyU3PDmaCbType_t type, 
          */
         status = CyU3PDmaMultiChannelGetBuffer (chHandle, &dmaBuffer, CYU3P_NO_WAIT);
         while (status == CY_U3P_SUCCESS) {
-            /* Stamp a large white block into the top-left quarter of the uncropped frame. */
+            /* Stamp a 30x30 block in the bottom-left corner of the uncropped frame.
+             * GPIO 22 (aux input) is sampled once per frame to set the luma value:
+             * high = 0xFF (white), low = 0x00 (black). */
             if (stampRowsDone < STAMP_SIZE_PX) {
+                /* Sample GPIO 22 at the very start of each new frame. */
+                if (stampRowsDone == 0) {
+                    CyBool_t ttlState;
+                    CyU3PGpioSimpleGetValue (AUX_INPUT, &ttlState);
+                    stampVal = ttlState ? 0xFF : 0x00;
+                }
+
                 uint16_t bytesPerLine = WIDTH * 2;
                 uint32_t bufStart     = frameBytesSoFar;
                 uint32_t bufEnd       = bufStart + dmaBuffer.count;
@@ -702,7 +725,7 @@ CyFxUvcApplnDmaCallback (CyU3PDmaMultiChannel *chHandle, CyU3PDmaCbType_t type, 
                         break;
                     }
 
-                    CyU3PMemSet (dmaBuffer.buffer + (rowStart - bufStart), stampVal, STAMP_BYTES_PER_ROW);
+                    stamp_row_yuyv (dmaBuffer.buffer + (rowStart - bufStart), stampVal);
                     stampRowsDone++;
                 }
             }
@@ -1016,6 +1039,28 @@ CyFxUVCApplnInit (void)
         CyFxAppErrorHandler (apiRetStatus);
     }
     apiRetStatus = CyU3PGpioSetIoMode (TRIG_RECORD_EXT, CY_U3P_GPIO_IO_MODE_WPD);
+    if (apiRetStatus != CY_U3P_SUCCESS) {
+        CyU3PDebugPrint (4, "GPIO Set IO Mode Error, Error Code = %d\n", apiRetStatus);
+        CyFxAppErrorHandler (apiRetStatus);
+    }
+
+    /* Aux input (GPIO 22) - override from GPIF to simple GPIO for TTL reading */
+    apiRetStatus = CyU3PDeviceGpioOverride (AUX_INPUT, CyTrue);
+    if (apiRetStatus != 0) {
+        CyU3PDebugPrint (4, "GPIO Override failed, Error Code = %d\n", apiRetStatus);
+        CyFxAppErrorHandler (apiRetStatus);
+    }
+    gpioConfig.outValue    = CyFalse;
+    gpioConfig.driveLowEn  = CyFalse;
+    gpioConfig.driveHighEn = CyFalse;
+    gpioConfig.inputEn     = CyTrue;
+    gpioConfig.intrMode    = CY_U3P_GPIO_NO_INTR;
+    apiRetStatus           = CyU3PGpioSetSimpleConfig (AUX_INPUT, &gpioConfig);
+    if (apiRetStatus != CY_U3P_SUCCESS) {
+        CyU3PDebugPrint (4, "GPIO Set Config Error, Error Code = %d\n", apiRetStatus);
+        CyFxAppErrorHandler (apiRetStatus);
+    }
+    apiRetStatus = CyU3PGpioSetIoMode (AUX_INPUT, CY_U3P_GPIO_IO_MODE_WPD);
     if (apiRetStatus != CY_U3P_SUCCESS) {
         CyU3PDebugPrint (4, "GPIO Set IO Mode Error, Error Code = %d\n", apiRetStatus);
         CyFxAppErrorHandler (apiRetStatus);

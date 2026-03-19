@@ -82,15 +82,16 @@
 #define CROP_HEIGHT_PX    334
 
 // Pixel stamp geometry in full-frame pixel coordinates.
-#define STAMP_SIZE_PX      304
+// The stamp is a square block in the bottom-left corner of the uncropped frame.
+#define STAMP_SIZE_PX       30
 #define STAMP_BYTES_PER_ROW (STAMP_SIZE_PX * 2)
-#define STAMP_LEFT_EDGE_PX 0
-#define STAMP_TOP_EDGE_PX  0
+#define STAMP_LEFT_EDGE_PX  0
+#define STAMP_TOP_EDGE_PX   (HEIGHT - STAMP_SIZE_PX)
 
 // Stamp source selection.
 #define STAMP_MODE_ALWAYS_WHITE 0
 #define STAMP_MODE_GPIO22       1
-#define STAMP_MODE              STAMP_MODE_ALWAYS_WHITE
+#define STAMP_MODE              STAMP_MODE_GPIO22
 
 #define GPIO_SHIFT 20
 #define GPIO_MASK  0b00000111
